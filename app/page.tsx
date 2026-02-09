@@ -23,7 +23,9 @@ export default function Home() {
       return;
     }
     
-    const fullUrl = `${baseUrl}?${params}`;
+    // Agregar timestamp para evitar caché
+    const timestamp = Date.now();
+    const fullUrl = `${baseUrl}?${params},gx-no-cache=${timestamp}`;
     setFormUrl(fullUrl);
     
     debugLogger.info('Aplicación inicializada', {
