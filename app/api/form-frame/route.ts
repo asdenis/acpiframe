@@ -33,11 +33,13 @@ export async function GET(request: NextRequest) {
     }
 
     const html = await response.text();
+    const baseUrl = formUrl.split('?')[0]; // URL base sin parámetros
 
-    // Inyectar script para interceptar peticiones POST y redirigirlas al proxy
+    // Inyectar base tag y script para interceptar peticiones POST y redirigirlas al proxy
     const modifiedHtml = html.replace(
       '</head>',
-      `<script>
+      `<base href="${baseUrl}/">
+      <script>
         (function() {
           // Interceptar XMLHttpRequest
           const OriginalXHR = window.XMLHttpRequest;
