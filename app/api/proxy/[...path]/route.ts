@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
-    const pathSegments = params.path;
+    const { path } = await params;
+    const pathSegments = path;
     const resourcePath = pathSegments.join('/');
     
     // Construir URL del recurso en el servidor original
