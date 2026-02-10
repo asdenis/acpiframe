@@ -6,12 +6,12 @@ export async function GET(
 ) {
   try {
     const { path } = await params;
-    const pathSegments = path;
-    const resourcePath = pathSegments.join('/');
+    const resourcePath = path.join('/');
     
     // Construir URL del recurso en el servidor original
-    const baseUrl = 'https://ticketsplusform.mendoza.gov.ar/ticketsplusform';
-    const resourceUrl = `${baseUrl}/${resourcePath}`;
+    const resourceUrl = `https://ticketsplusform.mendoza.gov.ar/${resourcePath}`;
+
+    console.log('Proxy request:', resourceUrl);
 
     // Obtener el recurso
     const response = await fetch(resourceUrl, {
@@ -22,6 +22,7 @@ export async function GET(
     });
 
     if (!response.ok) {
+      console.error('Proxy error:', response.status, response.statusText);
       return NextResponse.json(
         { error: `Error: ${response.status}` },
         { status: response.status }
