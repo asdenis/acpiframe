@@ -35,10 +35,16 @@ export async function GET(request: NextRequest) {
     const html = await response.text();
 
     // Reescribir URLs de recursos para que usen el proxy
+    // Esto cubre: href="/...", src="/...", url(/...), etc.
     let modifiedHtml = html
-      .replace(/href="\/ticketsplusform\//g, 'href="/api/proxy/ticketsplusform/')
-      .replace(/src="\/ticketsplusform\//g, 'src="/api/proxy/ticketsplusform/')
-      .replace(/url\(\/ticketsplusform\//g, 'url(/api/proxy/ticketsplusform/');
+      // URLs absolutas que empiezan con /ticketsplusform/
+      .replace(/(['"])(\/ticketsplusform\/[^'"]*)/g, '$1/api/proxy/ticketsplusform/$2')
+      // URLs en url() de CSS
+      .replace(/url\((['"]?)\/ticketsplusform\//g, 'url($1/api/proxy/ticketsplusform/')
+      // URLs relativas que empiezan con static/
+      .replace(/(['"])(static\/[^'"]*)/g, '$1/api/proxy/ticketsplusform/$2')
+      // URLs en url() para recursos relativos
+      .replace(/url\((['"]?)(static\/[^'"]*)/g, 'url($1/api/proxy/ticketsplusform/$2');
 
     // Inyectar script para interceptar peticiones POST
     modifiedHtml = modifiedHtml.replace(
