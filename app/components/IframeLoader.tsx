@@ -104,61 +104,10 @@ export default function IframeLoader({
     setIsLoading(false);
     setError(null);
     
-    // Inyectar script para interceptar peticiones POST
-    injectInterceptor();
-    
     // Verificar si el iframe se cargó correctamente
     setTimeout(() => {
       checkIframeContent();
     }, 1000);
-  };
-
-  const injectInterceptor = () => {
-    try {
-      const iframe = iframeRef.current;
-      if (!iframe || !iframe.contentWindow) return;
-
-      // Crear un script que intercepte XMLHttpRequest
-      const script = iframe.contentWindow.document.createElement('script');
-      script.textContent = `
-        (function() {
-          const originalOpen = XMLHttpRequest.prototype.open;
-          const originalSend = XMLHttpRequest.prototype.send;
-          
-          XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-            this._method = method;
-            this._url = url;
-            return originalOpen.call(this, method, url, ...rest);
-          };
-          
-          XMLHttpRequest.prototype.send = function(body) {
-            if (this._method === 'POST' && this._url && this._url.includes('ticketsplusform')) {
-              // Interceptar la petición POST
-              const originalOnReadyStateChange = this.onreadystatechange;
-              
-              this.onreadystatechange = function() {
-                if (this.readyState === 4) {
-                  console.log('POST interceptado:', this._url, 'Status:', this.status);
-                }
-                if (originalOnReadyStateChange) {
-                  originalOnReadyStateChange.call(this);
-                }
-              };
-            }
-            return originalSend.call(this, body);
-          };
-        })();
-      `;
-      
-      try {
-        iframe.contentWindow.document.head.appendChild(script);
-        debugLogger.info('Interceptor inyectado en el iframe');
-      } catch (e) {
-        debugLogger.warning('No se pudo inyectar interceptor (CORS esperado)');
-      }
-    } catch (error: any) {
-      debugLogger.warning('Error al inyectar interceptor', error.message);
-    }
   };
 
   const handleError = (errorMessage: string) => {

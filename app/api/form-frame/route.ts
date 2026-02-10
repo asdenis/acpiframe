@@ -34,64 +34,36 @@ export async function GET(request: NextRequest) {
 
     const html = await response.text();
 
-    // Reescribir URLs de recursos para que usen el proxy
-    // Solo reescribir URLs que NO estén ya reescritas
-    let modifiedHtml = html
-      // URLs absolutas /ticketsplusform/ → /api/proxy/ticketsplusform/
-      .replace(/(['"])(\/ticketsplusform\/)/g, (match, quote, path) => {
-        // Evitar duplicar si ya está reescrito
-        if (match.includes('/api/proxy/')) return match;
-        return `${quote}/api/proxy${path}`;
-      })
-      // URLs relativas static/ → /api/proxy/ticketsplusform/static/
-      .replace(/(['"])(static\/)/g, (match, quote, path) => {
-        if (match.includes('/api/proxy/')) return match;
-        return `${quote}/api/proxy/ticketsplusform/${path}`;
-      })
-      // URLs en url() de CSS
-      .replace(/url\((['"]?)(\/ticketsplusform\/)/g, (match, quote, path) => {
-        if (match.includes('/api/proxy/')) return match;
-        return `url(${quote}/api/proxy${path}`;
-      })
-      .replace(/url\((['"]?)(static\/)/g, (match, quote, path) => {
-        if (match.includes('/api/proxy/')) return match;
-        return `url(${quote}/api/proxy/ticketsplusform/${path}`;
-      });
-
-    // Inyectar script para interceptar peticiones POST
-    modifiedHtml = modifiedHtml.replace(
+    // Inyectar script para interceptar peticiones POST y redirigirlas al proxy
+    const modifiedHtml = html.replace(
       '</head>',
       `<script>
         (function() {
-          const originalFetch = window.fetch;
-          const originalXHR = window.XMLHttpRequest;
+          // Interceptar XMLHttpRequest
+          const OriginalXHR = window.XMLHttpRequest;
+          const XHROpen = OriginalXHR.prototype.open;
           
-          // Interceptar fetch
-          window.fetch = function(...args) {
-            const [resource, config] = args;
-            
-            if (typeof resource === 'string' && resource.includes('ticketsplusform')) {
-              const url = new URL(resource, window.location.origin);
-              const proxyUrl = '/api/form-proxy?' + url.searchParams.toString();
-              
-              return originalFetch(proxyUrl, {
-                ...config,
-                method: config?.method || 'GET',
-              });
+          OriginalXHR.prototype.open = function(method, url, ...args) {
+            // Si es POST a ticketsplusform, redirigir al proxy
+            if (method.toUpperCase() === 'POST' && url && url.includes('ticketsplusform')) {
+              const urlObj = new URL(url, window.location.origin);
+              const proxyUrl = '/api/form-proxy?' + urlObj.searchParams.toString();
+              console.log('Interceptando POST:', url, '→', proxyUrl);
+              return XHROpen.call(this, method, proxyUrl, ...args);
             }
-            
-            return originalFetch(...args);
+            return XHROpen.call(this, method, url, ...args);
           };
           
-          // Interceptar XMLHttpRequest
-          const XHROpen = originalXHR.prototype.open;
-          originalXHR.prototype.open = function(method, url, ...rest) {
-            if (typeof url === 'string' && url.includes('ticketsplusform')) {
-              const fullUrl = new URL(url, window.location.origin);
-              const proxyUrl = '/api/form-proxy?' + fullUrl.searchParams.toString();
-              return XHROpen.call(this, method, proxyUrl, ...rest);
+          // Interceptar fetch también
+          const originalFetch = window.fetch;
+          window.fetch = function(resource, config) {
+            if (typeof resource === 'string' && resource.includes('ticketsplusform') && config?.method?.toUpperCase() === 'POST') {
+              const urlObj = new URL(resource, window.location.origin);
+              const proxyUrl = '/api/form-proxy?' + urlObj.searchParams.toString();
+              console.log('Interceptando fetch POST:', resource, '→', proxyUrl);
+              return originalFetch(proxyUrl, config);
             }
-            return XHROpen.call(this, method, url, ...rest);
+            return originalFetch(resource, config);
           };
         })();
       </script></head>`

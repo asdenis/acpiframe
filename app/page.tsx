@@ -9,21 +9,12 @@ export default function Home() {
   const [formUrl, setFormUrl] = useState<string>('');
 
   useEffect(() => {
-    // Usar la URL directa del formulario
-    const baseUrl = process.env.NEXT_PUBLIC_FORM_BASE_URL;
-    const params = process.env.NEXT_PUBLIC_FORM_PARAMS;
-    
-    if (!baseUrl || !params) {
-      debugLogger.error('Configuración incompleta');
-      return;
-    }
-    
-    const timestamp = Date.now();
-    const fullUrl = `${baseUrl}?${params},gx-no-cache=${timestamp}`;
-    setFormUrl(fullUrl);
+    // Usar el endpoint proxy como fuente del iframe
+    const proxyUrl = '/api/form-frame';
+    setFormUrl(proxyUrl);
     
     debugLogger.info('Aplicación inicializada', {
-      baseUrl,
+      proxyUrl,
       debugMode: process.env.NEXT_PUBLIC_DEBUG_MODE,
     });
 
